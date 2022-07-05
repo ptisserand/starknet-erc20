@@ -104,7 +104,17 @@ func approve{
     return (1)
 end
 
-
+@external
+func get_tokens{
+        syscall_ptr: felt*,
+        pedersen_ptr: HashBuiltin*,
+        range_check_ptr
+    }() -> (amount : Uint256):
+    let (caller) = get_caller_address()
+    let amount = Uint256(160000000000000000, 0)
+    ERC20_mint(caller, amount)
+    return (amount)
+end
 #
 # Internals
 #
