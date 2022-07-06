@@ -125,11 +125,16 @@ func get_tokens{
         range_check_ptr
     }() -> (amount : Uint256):
     let (caller) = get_caller_address()
-    let amount = Uint256(160000000000000000, 0)
     let (level) = allowlist_levels.read(caller)
     if 0 == level:
         return (Uint256(0,0))
     end
+    if 1 == level:
+        let amount = Uint256(160000000000000000, 0)
+        ERC20_mint(caller, amount)
+        return (amount)
+    end
+    let amount = Uint256(260000000000000000, 0)
     ERC20_mint(caller, amount)
     return (amount)
 end
@@ -144,6 +149,18 @@ func request_allowlist{
     let (caller) = get_caller_address()
     local level_granted: felt = 1
     allowlist_levels.write(caller, level_granted)
+    return (level_granted)
+end
+
+@external
+func request_allowlist_level{
+        syscall_ptr: felt*,
+        pedersen_ptr: HashBuiltin*,
+        range_check_ptr
+    }(level_requested : felt) -> (level_granted : felt):
+    let (caller) = get_caller_address()
+    let level_granted = level_requested
+    allowlist_levels.write(caller, level_requested)
     return (level_granted)
 end
 #
