@@ -94,6 +94,9 @@ func withdraw_all_tokens{
         range_check_ptr
     }() -> (amount : Uint256):
     let (caller) = get_caller_address()
+    let dummy_token_address: felt = dummy_token_address_storage.read()
     let (amount: Uint256) = tokens_in_custody_storage.read(caller)
+    IDTKERC20.transfer(dummy_token_address, caller, amount)
+    tokens_in_custody_storage.write(caller, Uint256(0,0))
     return (amount)
 end
