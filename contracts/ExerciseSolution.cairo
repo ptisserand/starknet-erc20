@@ -100,3 +100,19 @@ func withdraw_all_tokens{
     tokens_in_custody_storage.write(caller, Uint256(0,0))
     return (amount)
 end
+
+@external
+func deposit_tokens{
+        syscall_ptr: felt*,
+        pedersen_ptr: HashBuiltin*,
+        range_check_ptr
+    }(amount : Uint256) -> (total_amount : Uint256):
+    let (caller) = get_caller_address()
+    let (contract) = get_contract_address()
+    let dummy_token_address: felt = dummy_token_address_storage.read()
+    IDTKERC20.transferFrom(dummy_token_address, caller, contract, amount)
+    let (old_amount) = tokens_in_custody_storage.read(caller)
+    let (new_amount, _) = uint256_add(old_amount, amount)
+    tokens_in_custody_storage.write(caller, new_amount)
+    return (new_amount)
+end
