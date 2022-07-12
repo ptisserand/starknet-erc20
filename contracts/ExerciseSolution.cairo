@@ -12,6 +12,7 @@ from starkware.cairo.common.uint256 import (
 )
 
 from contracts.token.ERC20.IDTKERC20 import IDTKERC20
+from contracts.IDepositToken import IDepositToken
 
 
 #
@@ -20,6 +21,10 @@ from contracts.token.ERC20.IDTKERC20 import IDTKERC20
 #
 @storage_var
 func dummy_token_address_storage() -> (dummy_token_address_storage: felt):
+end
+
+@storage_var
+func deposit_token_address_storage() -> (deposit_token_address_storage: felt):
 end
 
 @storage_var
@@ -36,9 +41,11 @@ func constructor{
         pedersen_ptr: HashBuiltin*,
         range_check_ptr
     }(
-        dummy_token_address: felt
+        dummy_token_address: felt,
+        deposit_token_address: felt,
     ):
     dummy_token_address_storage.write(dummy_token_address)
+    deposit_token_address_storage.write(deposit_token_address)
     return ()
 end
 
@@ -63,6 +70,16 @@ func tokens_in_custody{
     }(account : felt) -> (amount : Uint256):
     let (amount) = tokens_in_custody_storage.read(account)
     return (amount)
+end
+
+@view
+func deposit_tracker_token{
+        syscall_ptr: felt*,
+        pedersen_ptr: HashBuiltin*,
+        range_check_ptr
+    }() -> (address: felt):
+    let (address) = deposit_token_address_storage.read()
+    return (address)
 end
 
 #
@@ -94,10 +111,14 @@ func withdraw_all_tokens{
         range_check_ptr
     }() -> (amount : Uint256):
     let (caller) = get_caller_address()
+    let (contract) = get_contract_address()
     let dummy_token_address: felt = dummy_token_address_storage.read()
+    let deposit_token_address: felt = deposit_token_address_storage.read()
     let (amount: Uint256) = tokens_in_custody_storage.read(caller)
+    IDepositToken.transferFrom(deposit_token_address, caller, contract, amount)
     IDTKERC20.transfer(dummy_token_address, caller, amount)
     tokens_in_custody_storage.write(caller, Uint256(0,0))
+    IDepositToken.burn(deposit_token_address, amount)
     return (amount)
 end
 
@@ -110,7 +131,10 @@ func deposit_tokens{
     let (caller) = get_caller_address()
     let (contract) = get_contract_address()
     let dummy_token_address: felt = dummy_token_address_storage.read()
-    IDTKERC20.transferFrom(dummy_token_address, caller, contract, amount)
+    let deposit_token_address: felt = deposit_token_address_storage.read()
+    IDTKERC20.transferFrom(contract_address=dummy_token_address, sender=caller, recipient=contract, amount=amount)
+    IDepositToken.mint(contract_address=deposit_token_address, recipient=caller, amount=amount)
+    # IDepositToken.transfer(deposit_token_address, caller, amount)
     let (old_amount) = tokens_in_custody_storage.read(caller)
     let (new_amount, _) = uint256_add(old_amount, amount)
     tokens_in_custody_storage.write(caller, new_amount)
